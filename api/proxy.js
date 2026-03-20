@@ -2,8 +2,11 @@ export const config = { api: { bodyParser: { sizeLimit: '10mb' } } };
 
 const MODELS = [
   'openrouter/free',
-  'meta-llama/llama-3.2-3b-instruct:free',
-  'qwen/qwen-2-7b-instruct:free',
+  'google/gemma-3-27b-it:free',
+  'deepseek/deepseek-r1-distill-llama-70b:free',
+  'meta-llama/llama-4-maverick:free',
+  'microsoft/phi-4-reasoning-plus:free',
+  'tngtech/deepseek-r1t-chimera:free',
 ];
 
 export default async function handler(req, res) {
