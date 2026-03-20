@@ -1,0 +1,853 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ระบบข้อมูลลูกค้า</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Tahoma', 'Arial', sans-serif; font-size: 12px; }
+  body { background: #c0c0c0; padding: 8px; }
+
+  .main-container { background: #d4e8f7; border: 2px solid #4a7ab5; border-radius: 4px; }
+
+  /* Upload Banner */
+  .upload-banner {
+    background: linear-gradient(135deg, #1a3a6b, #2e6da4);
+    color: white; padding: 8px 12px;
+    display: flex; align-items: center; gap: 10px;
+    border-radius: 3px 3px 0 0;
+  }
+  .upload-banner label {
+    background: #f0a500; color: #1a1a1a; font-weight: bold;
+    padding: 4px 12px; border-radius: 3px; cursor: pointer;
+    border: 1px solid #c08000; font-size: 12px;
+    transition: background 0.2s;
+  }
+  .upload-banner label:hover { background: #ffbe30; }
+  #fileInput { display: none; }
+  #statusMsg { font-size: 12px; color: #fffacd; }
+  .spinner { display: none; width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.3); border-top-color: white; border-radius: 50%; animation: spin 0.8s linear infinite; }
+  .spinner.active { display: block; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Section Headers */
+  .section-header {
+    background: linear-gradient(180deg, #1e4a8c 0%, #0d2e6b 100%);
+    color: #ffe680; font-weight: bold; padding: 3px 8px;
+    font-size: 12px; border-bottom: 1px solid #0a1f4e;
+  }
+
+  /* Main Layout */
+  .top-row { display: flex; gap: 0; }
+  .left-panel { flex: 1; border-right: 1px solid #8ab4d8; }
+  .right-panel { width: 280px; }
+
+  /* Form Area */
+  .form-area { padding: 4px 6px; background: #d4e8f7; }
+
+  .form-row {
+    display: flex; align-items: center; margin-bottom: 2px; min-height: 22px;
+  }
+  .form-label {
+    color: #1a1a1a; min-width: 130px; text-align: right; padding-right: 6px;
+    font-size: 11.5px; flex-shrink: 0;
+  }
+  .form-label .req { color: red; }
+  .form-input {
+    background: white; border: 1px solid #8ab4d8; padding: 2px 4px;
+    height: 20px; font-size: 12px; color: #1a1a1a;
+  }
+  .form-input:focus { outline: 1px solid #2e6da4; background: #fffde0; }
+  .form-input.orange-bg { background: #ffd080; }
+  .form-input.wide { width: 280px; }
+  .form-input.medium { width: 160px; }
+  .form-input.small { width: 80px; }
+  .form-input.xsmall { width: 50px; }
+  .form-input.full { width: 100%; }
+
+  .btn {
+    background: linear-gradient(180deg, #e8e8e8, #c8c8c8);
+    border: 1px solid #999; padding: 1px 8px; cursor: pointer;
+    font-size: 11px; height: 20px; white-space: nowrap;
+  }
+  .btn:hover { background: linear-gradient(180deg, #f0f0f0, #d8d8d8); }
+  .btn-dots { padding: 1px 4px; min-width: 22px; }
+
+  .checkbox-row { display: flex; align-items: center; gap: 4px; }
+  input[type="checkbox"] { width: 13px; height: 13px; cursor: pointer; }
+  input[type="radio"] { width: 12px; height: 12px; cursor: pointer; }
+
+  .radio-group { display: flex; align-items: center; gap: 8px; }
+  .radio-label { display: flex; align-items: center; gap: 3px; color: #1a1a1a; font-size: 11.5px; }
+
+  /* Select */
+  select.form-input { height: 20px; padding: 0 2px; }
+
+  /* Map area */
+  .map-area { background: #e8e8e8; height: 170px; display: flex; align-items: center; justify-content: center; border: 1px solid #aaa; margin: 4px; position: relative; }
+  .map-area img { width: 100%; height: 100%; object-fit: cover; opacity: 0.5; }
+  .no-image { position: absolute; font-size: 18px; font-weight: bold; color: #888; letter-spacing: 2px; }
+  .map-pin { position: absolute; font-size: 28px; bottom: 40px; }
+
+  /* Delivery section */
+  .delivery-section { padding: 4px 6px; }
+  .delivery-row { display: flex; align-items: center; margin-bottom: 2px; }
+  .delivery-label { color: #1a1a1a; width: 70px; text-align: right; padding-right: 6px; font-size: 11.5px; }
+
+  /* Credit section */
+  .credit-tabs { display: flex; }
+  .credit-tab { background: linear-gradient(180deg, #1e4a8c, #0d2e6b); color: #ffe680; padding: 3px 12px; cursor: pointer; font-size: 12px; font-weight: bold; border-right: 1px solid #0a1f4e; }
+  .credit-tab.active { background: linear-gradient(180deg, #3a6ab0, #1e4a8c); }
+  .credit-area { padding: 4px 6px; }
+  .credit-row { display: flex; align-items: center; margin-bottom: 2px; min-height: 22px; }
+  .credit-label { color: #1a1a1a; min-width: 90px; text-align: right; padding-right: 6px; font-size: 11.5px; }
+
+  /* Bottom buttons */
+  .bottom-buttons {
+    background: linear-gradient(180deg, #d4e8f7, #b8d4ed);
+    padding: 4px 6px; border-top: 1px solid #8ab4d8;
+    display: flex; gap: 4px; align-items: center;
+  }
+  .bottom-btn {
+    background: linear-gradient(180deg, #5b9bd5, #3a7abf);
+    color: white; border: 1px solid #2e6da4; padding: 3px 10px;
+    cursor: pointer; font-size: 11.5px; border-radius: 2px;
+    white-space: nowrap;
+  }
+  .bottom-btn:hover { background: linear-gradient(180deg, #7bb5e8, #5b9bd5); }
+
+  .recorder-info { color: #555; font-size: 11px; flex: 1; display: flex; gap: 20px; }
+
+  /* Contacts Table */
+  .contacts-section { border-top: 2px solid #4a7ab5; }
+  .contacts-table { width: 100%; border-collapse: collapse; }
+  .contacts-table th {
+    background: linear-gradient(180deg, #e8e8e8, #d0d0d0);
+    border: 1px solid #999; padding: 3px 6px; font-size: 11.5px;
+    text-align: center; font-weight: bold;
+  }
+  .contacts-table td { border: 1px solid #bbb; padding: 1px 2px; background: white; }
+  .contacts-table td input { width: 100%; border: none; outline: none; padding: 2px 3px; font-size: 11.5px; background: transparent; height: 20px; }
+  .contacts-table tr:nth-child(even) td { background: #f5f5f5; }
+  .contacts-table .row-num { background: #e8e8e8; text-align: center; width: 20px; font-size: 11px; color: #666; }
+  .contacts-table .default-col { width: 60px; text-align: center; }
+  .contacts-table td select { width: 100%; border: none; font-size: 11px; height: 20px; background: transparent; }
+
+  /* Separator */
+  .sep { height: 1px; background: #8ab4d8; margin: 2px 0; }
+
+  /* Active badge */
+  .active-badge { background: #4a9a4a; color: white; padding: 2px 8px; border-radius: 2px; font-size: 11.5px; font-weight: bold; display: flex; align-items: center; gap: 3px; }
+
+  .inline-group { display: flex; align-items: center; gap: 4px; flex-wrap: nowrap; }
+
+  .export-btn {
+    background: linear-gradient(180deg, #e05a00, #c04000);
+    color: white; font-weight: bold; padding: 4px 14px;
+    border-radius: 3px; cursor: pointer; border: 1px solid #a03000;
+    font-size: 12px; transition: background 0.2s; margin-left: auto;
+  }
+  .export-btn:hover { background: linear-gradient(180deg, #ff7020, #e05a00); }
+  .export-btn:disabled { background: #999; border-color: #777; cursor: not-allowed; }
+  .form-input.filled { background: #e8f5e9; border-color: #4caf50; }
+
+  /* Auto-fill success animation */
+  @keyframes flashGreen {
+    0% { background: #c8f7c8; }
+    100% { background: #e8f5e9; }
+  }
+  .just-filled { animation: flashGreen 1s ease; }
+
+  /* Customer Type Modal */
+  .modal-overlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.45); z-index:1000; }
+  .modal-overlay.active { display:flex; align-items:center; justify-content:center; }
+  .cust-modal { background:#f5deb3; border:2px solid #8b6914; border-radius:4px; width:480px; box-shadow:6px 6px 16px rgba(0,0,0,0.5); }
+  .modal-titlebar { background:linear-gradient(180deg,#e8a800,#c87800); padding:5px 8px; display:flex; align-items:center; gap:6px; font-weight:bold; font-size:13px; color:#1a1a1a; border-radius:2px 2px 0 0; }
+  .modal-titlebar .close-x { margin-left:auto; cursor:pointer; background:#c03030; color:white; border:1px solid #902020; width:18px; height:18px; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:bold; border-radius:2px; }
+  .modal-titlebar .close-x:hover { background:#e04040; }
+  .modal-filter { background:#f0c060; padding:6px 10px; display:flex; align-items:center; gap:8px; border-bottom:1px solid #c8a040; flex-wrap:wrap; }
+  .modal-filter span { font-weight:bold; font-size:12px; }
+  .modal-filter input[type=text] { border:1px solid #8b6914; padding:2px 6px; height:22px; width:160px; font-size:12px; background:white; }
+  .modal-filter label { display:flex; align-items:center; gap:3px; font-size:12px; cursor:pointer; }
+  .modal-search-btn { background:linear-gradient(180deg,#ffe090,#e8c040); border:2px solid #c8a020; padding:4px 14px; cursor:pointer; font-size:12px; font-weight:bold; border-radius:20px; margin-left:auto; color:#1a1a1a; }
+  .modal-search-btn:hover { background:linear-gradient(180deg,#fff0b0,#f0d050); }
+  .modal-body { padding:8px 10px 4px; }
+  .modal-section-hdr { background:#8b0000; color:white; font-weight:bold; padding:4px 10px; font-size:12px; }
+  .modal-table-wrap { max-height:220px; overflow-y:auto; border:1px solid #c8a040; margin-top:0; }
+  .modal-table { width:100%; border-collapse:collapse; }
+  .modal-table th { background:linear-gradient(180deg,#ffe88a,#f0c840); border:1px solid #c8a040; padding:4px 10px; font-size:12px; text-align:center; position:sticky; top:0; }
+  .modal-table td { border:1px solid #d8c090; padding:3px 10px; font-size:12px; background:white; cursor:pointer; }
+  .modal-table tr:hover td { background:#fff3c0; }
+  .modal-table tr.selected td { background:#ffe060; font-weight:bold; }
+  .modal-table .num-col { text-align:center; width:32px; color:#555; background:#f5f0e0; }
+  .modal-table .code-col { text-align:center; width:70px; font-weight:bold; }
+  .modal-footer { padding:6px 10px; display:flex; align-items:center; justify-content:space-between; border-top:1px solid #c8a040; background:#f0c060; }
+  .modal-footer .record-info { color:#8b0000; font-weight:bold; font-size:13px; }
+  .modal-footer .exit-btn { background:linear-gradient(180deg,#e8e8e8,#c8c8c8); border:1px solid #999; padding:4px 24px; cursor:pointer; font-size:12px; border-radius:3px; font-weight:bold; }
+  .modal-footer .exit-btn:hover { background:linear-gradient(180deg,#f8f8f8,#d8d8d8); }
+  @media print {
+    body { background: white; padding: 0; margin: 0; }
+    .upload-banner { display: none !important; }
+    .main-container { border: none; border-radius: 0; }
+    .modal-overlay { display: none !important; }
+    * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+  }
+</style>
+</head>
+<body>
+<div class="main-container">
+
+  <!-- Upload Banner -->
+  <div class="upload-banner">
+    <span style="font-weight:bold; font-size:13px;">📄 นำเข้าข้อมูลจากเอกสาร</span>
+    <label for="fileInput">📂 เลือกไฟล์ PDF / รูปภาพ</label>
+    <input type="file" id="fileInput" accept=".pdf,image/*">
+    <div class="spinner" id="spinner"></div>
+    <span id="statusMsg">อัพโหลดหนังสือรับรองบริษัท เพื่อ Auto-Fill ข้อมูล</span>
+    <button class="export-btn" id="exportPdfBtn">🖨️ Export PDF</button>
+  </div>
+
+  <!-- Section Header -->
+  <div class="section-header">รายละเอียดลูกค้า 1</div>
+
+  <div class="top-row">
+    <!-- LEFT PANEL -->
+    <div class="left-panel">
+      <div class="form-area">
+
+        <!-- Row: รหัสลูกค้า -->
+        <div class="form-row">
+          <div class="form-label"><span class="req">*</span> รหัสลูกค้า</div>
+          <input type="text" class="form-input small" id="f_customerId">
+          <button class="btn" style="margin-left:4px;">Check ID</button>
+          <div style="flex:1"></div>
+          <div class="active-badge"><input type="checkbox" id="f_active" checked> Active</div>
+        </div>
+
+        <!-- Row: ชื่อลูกค้า -->
+        <div class="form-row">
+          <div class="form-label"><span class="req">*</span> ชื่อลูกค้า</div>
+          <input type="text" class="form-input wide" id="f_customerName" style="width:440px;">
+        </div>
+
+        <!-- Row: วัน/เดือน/ปี เกิด -->
+        <div class="form-row">
+          <div class="form-label">วัน/เดือน/ปี เกิด</div>
+          <input type="text" class="form-input small" id="f_birthDate" value="20/03/2026" style="width:75px;">
+          <button class="btn btn-dots" style="margin:0 2px;">...</button>
+          <div style="margin-left:4px; margin-right:4px;">อายุ</div>
+          <input type="text" class="form-input xsmall" id="f_age">
+          <div style="margin-left:4px; margin-right:2px;">ปี</div>
+          <div class="radio-group" style="margin-left:12px;">
+            <label class="radio-label"><input type="radio" name="branchType" value="main" checked id="r_main"> สำนักงานใหญ่</label>
+            <label class="radio-label"><input type="radio" name="branchType" value="branch" id="r_branch"> สาขาที่</label>
+            <input type="text" class="form-input xsmall" style="width:50px;">
+            <select class="form-input" style="width:80px;"></select>
+          </div>
+        </div>
+
+        <!-- Row: เลขประจำตัวผู้เสียภาษี -->
+        <div class="form-row">
+          <div class="form-label">เลขประจำตัวผู้เสียภาษี</div>
+          <input type="text" class="form-input" style="width:140px;" id="f_taxId">
+          <div class="radio-group" style="margin-left:16px;">
+            <span style="margin-right:4px; color:#1a1a1a;">ประเภทการขาย</span>
+            <label class="radio-label"><input type="radio" name="saleType" value="local" checked> Local</label>
+            <label class="radio-label"><input type="radio" name="saleType" value="export"> Export</label>
+          </div>
+        </div>
+
+        <!-- Row: ประเภทลูกค้า -->
+        <div class="form-row">
+          <div class="form-label">ประเภทลูกค้า</div>
+          <input type="text" class="form-input xsmall" id="f_custTypeCode" value="TR">
+          <button class="btn btn-dots" style="margin:0 2px;">...</button>
+          <input type="text" class="form-input" style="width:90px;" id="f_custTypeDesc" value="TRADERS">
+          <div class="radio-group" style="margin-left:16px;">
+            <label class="radio-label"><input type="radio" name="personType" value="juristic" id="r_juristic"> นิติบุคคล</label>
+            <label class="radio-label"><input type="radio" name="personType" value="natural" id="r_natural"> บุคคลธรรมดา</label>
+          </div>
+        </div>
+
+        <!-- Row: ชื่อผู้ติดต่อ -->
+        <div class="form-row">
+          <div class="form-label">ชื่อผู้ติดต่อ</div>
+          <input type="text" class="form-input medium" id="f_contactName">
+          <div class="form-label" style="min-width:60px; text-align:right;">Channel</div>
+          <input type="text" class="form-input xsmall" id="f_channel">
+          <button class="btn btn-dots" style="margin:0 2px;">...</button>
+          <input type="text" class="form-input" style="width:90px;" id="f_channelDesc">
+        </div>
+
+        <!-- Row: ประเทศ(ที่ตั้ง) -->
+        <div class="form-row">
+          <div class="form-label">ประเทศ(ที่ตั้ง)</div>
+          <input type="text" class="form-input medium" id="f_country">
+          <div class="form-label" style="min-width:100px; text-align:right;">Current Business</div>
+          <input type="text" class="form-input medium" id="f_currentBusiness">
+        </div>
+
+        <!-- Row: Target Country -->
+        <div class="form-row">
+          <div class="form-label">Target Country</div>
+          <input type="text" class="form-input medium" id="f_targetCountry">
+          <div class="form-label" style="min-width:80px; text-align:right;">Sub Channel</div>
+          <input type="text" class="form-input" style="width:90px;" id="f_subChannel">
+          <button class="btn btn-dots" style="margin:0 2px;">...</button>
+        </div>
+
+        <!-- Row: First Met at -->
+        <div class="form-row">
+          <div class="form-label">First Met at</div>
+          <input type="text" class="form-input" style="width:220px;" id="f_firstMetAt">
+          <div class="form-label" style="min-width:40px; text-align:right;">Year</div>
+          <input type="text" class="form-input xsmall" id="f_year">
+        </div>
+
+        <!-- Row: ที่อยู่ -->
+        <div class="form-row">
+          <div class="form-label">ที่อยู่</div>
+          <input type="text" class="form-input orange-bg" style="width:380px;" id="f_address">
+        </div>
+
+        <!-- Row: เขต/อำเภอ -->
+        <div class="form-row">
+          <div class="form-label">เขต/อำเภอ</div>
+          <input type="text" class="form-input medium" id="f_district">
+          <div class="form-label" style="min-width:60px; text-align:right;">จังหวัด</div>
+          <select class="form-input" style="width:130px;" id="f_province">
+            <option value=""></option>
+            <option value="กรุงเทพมหานคร">กรุงเทพมหานคร</option>
+            <option value="กระบี่">กระบี่</option>
+            <option value="กาญจนบุรี">กาญจนบุรี</option>
+            <option value="ชลบุรี">ชลบุรี</option>
+            <option value="เชียงใหม่">เชียงใหม่</option>
+            <option value="นนทบุรี">นนทบุรี</option>
+            <option value="ปทุมธานี">ปทุมธานี</option>
+            <option value="สมุทรปราการ">สมุทรปราการ</option>
+          </select>
+        </div>
+
+        <!-- Row: ประเทศ/รหัสไปรษณีย์ -->
+        <div class="form-row">
+          <div class="form-label">ประเทศ/รหัสไปรษณีย์</div>
+          <input type="text" class="form-input" style="width:80px;" id="f_countryCode">
+          <div class="form-label" style="min-width:90px; text-align:right;">โครงสร้างราคา</div>
+          <input type="text" class="form-input xsmall" id="f_priceStructure">
+          <button class="btn btn-dots" style="margin:0 2px;">...</button>
+          <input type="text" class="form-input" style="width:90px;" id="f_priceStructureDesc">
+        </div>
+
+        <!-- Row: โทรศัพท์ -->
+        <div class="form-row">
+          <div class="form-label">โทรศัพท์</div>
+          <input type="text" class="form-input medium" id="f_phone">
+          <div class="form-label" style="min-width:60px; text-align:right;">สกุลเงิน</div>
+          <select class="form-input" style="width:70px;" id="f_currency">
+            <option value="THB">THB</option>
+            <option value="USD">USD</option>
+            <option value="EUR">EUR</option>
+          </select>
+        </div>
+
+        <!-- Row: เขตการขาย -->
+        <div class="form-row">
+          <div class="form-label">เขตการขาย</div>
+          <input type="text" class="form-input xsmall" id="f_salesZone">
+          <button class="btn btn-dots" style="margin:0 2px;">...</button>
+          <input type="text" class="form-input" style="width:80px;" id="f_salesZoneDesc">
+          <div class="form-label" style="min-width:50px; text-align:right;">แฟกซ์</div>
+          <input type="text" class="form-input medium" id="f_fax">
+        </div>
+
+        <!-- Row: อีเมล -->
+        <div class="form-row">
+          <div class="form-label">อีเมล</div>
+          <input type="text" class="form-input medium" id="f_email">
+          <div style="margin-left:6px; margin-right:2px; color:#1a1a1a;">เว็บไซต์ http://</div>
+          <input type="text" class="form-input" style="width:130px;" id="f_website">
+          <button class="btn" style="margin-left:4px;">Link</button>
+        </div>
+
+        <!-- Row: พนักงานขาย -->
+        <div class="form-row">
+          <div class="form-label">พนักงานขาย</div>
+          <input type="text" class="form-input xsmall" id="f_salesperson">
+          <button class="btn btn-dots" style="margin:0 2px;">...</button>
+        </div>
+
+        <!-- Row: หมายเหตุ 1 -->
+        <div class="form-row">
+          <div class="form-label">หมายเหตุ 1</div>
+          <input type="text" class="form-input" style="width:380px;" id="f_note1">
+        </div>
+
+        <!-- Checkbox row -->
+        <div class="form-row" style="margin-left:136px;">
+          <input type="checkbox" id="f_showNote1" checked>
+          <label for="f_showNote1" style="margin-left:3px; font-size:11.5px;">แสดงหมายเหตุ 1 ที่ใบเสนอราคาและใบสั่งขายอัตโนมัติ</label>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- RIGHT PANEL -->
+    <div class="right-panel">
+      <!-- Map -->
+      <div style="padding:4px;">
+        <div class="map-area">
+          <div class="no-image">NO IMAGE</div>
+          <div class="map-pin">📍</div>
+        </div>
+        <div class="delivery-section">
+          <div class="delivery-row">
+            <div class="delivery-label">สถานที่จัดส่ง</div>
+            <input type="text" class="form-input" style="width:140px;">
+          </div>
+          <div class="delivery-row">
+            <div class="delivery-label">รูปแผนที่</div>
+            <input type="text" class="form-input" style="width:100px;">
+            <button class="btn btn-dots" style="margin:0 2px;">...</button>
+            <button class="btn">แสดง</button>
+          </div>
+          <div class="delivery-row">
+            <div class="delivery-label">ไฟล์แนบ</div>
+            <input type="text" class="form-input" style="width:100px;">
+            <button class="btn btn-dots" style="margin:0 2px;">...</button>
+            <button class="btn">แสดง</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Credit Tabs -->
+      <div class="credit-tabs" style="margin-top:4px;">
+        <div class="credit-tab active">เครดิต</div>
+        <div class="credit-tab">แนบไฟล์</div>
+      </div>
+
+      <div class="credit-area">
+        <div class="credit-row">
+          <div class="credit-label">วงเงินเครดิต</div>
+          <input type="text" class="form-input" style="width:60px;" value="0.00" id="f_creditLimit">
+          <div style="margin:0 4px; font-size:11.5px;">VAT(%)</div>
+          <input type="text" class="form-input xsmall" style="width:30px;" value="7" id="f_vat">
+          <div style="margin:0 4px; font-size:11.5px;">เครดิต(วัน)</div>
+          <input type="text" class="form-input xsmall" style="width:30px;" value="30" id="f_creditDays">
+        </div>
+        <div class="credit-row">
+          <div class="credit-label">Class</div>
+          <input type="text" class="form-input xsmall" id="f_class">
+          <button class="btn btn-dots" style="margin:0 2px;">...</button>
+          <input type="text" class="form-input" style="width:90px;" id="f_classDesc">
+        </div>
+        <div class="credit-row">
+          <div class="credit-label">หมายเหตุ 2</div>
+          <input type="text" class="form-input" style="width:155px;" id="f_note2">
+        </div>
+        <div class="credit-row">
+          <div class="credit-label">Black List</div>
+          <input type="checkbox" id="f_blackList">
+          <input type="text" class="form-input" style="width:130px; margin-left:4px;" id="f_blackListNote">
+        </div>
+        <div class="credit-row">
+          <div class="credit-label">ส่วนลดท้ายบิล %</div>
+          <input type="text" class="form-input" style="width:80px;" id="f_discount">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Recorder Info + Bottom Buttons -->
+  <div class="bottom-buttons">
+    <div class="recorder-info">
+      <span>ผู้บันทึกก่อนหน้า <input type="text" style="width:120px; border:1px solid #aaa; padding:1px 3px; font-size:11px;"></span>
+      <span>ผู้บันทึกล่าสุด <input type="text" style="width:120px; border:1px solid #aaa; padding:1px 3px; font-size:11px;"></span>
+    </div>
+    <button class="bottom-btn">รายชื่อผู้ติดต่อ</button>
+    <button class="bottom-btn">รายการสินค้า</button>
+    <button class="bottom-btn">CRM</button>
+    <button class="bottom-btn">รายงานใบสั่งขาย</button>
+    <button class="bottom-btn">สถานที่ส่งของ</button>
+    <button class="bottom-btn">Price Rate</button>
+    <button class="bottom-btn">Target</button>
+  </div>
+
+  <!-- Contacts Section -->
+  <div class="contacts-section">
+    <div class="section-header">รายชื่อผู้ติดต่อ</div>
+    <div style="background:#e8f0f8; padding:2px 4px; font-size:10.5px; color:#555; text-align:right;">*** Set Default : 0=Not Set, 1=Set</div>
+    <table class="contacts-table">
+      <thead>
+        <tr>
+          <th style="width:20px;"></th>
+          <th>ชื่อผู้ติดต่อ</th>
+          <th>ตำแหน่ง</th>
+          <th>เบอร์ติดต่อ</th>
+          <th>อีเมล</th>
+          <th style="width:120px;">หมายเหตุ</th>
+          <th class="default-col">Default</th>
+        </tr>
+      </thead>
+      <tbody id="contactsBody">
+        <!-- Generated by JS -->
+      </tbody>
+    </table>
+  </div>
+
+</div>
+
+<!-- Customer Type Modal -->
+<div class="modal-overlay" id="custTypeModal">
+  <div class="cust-modal">
+    <div class="modal-titlebar">
+      🔍 ค้นหาข้อมูล
+      <div class="close-x" id="modalClose">✕</div>
+    </div>
+    <div class="modal-filter">
+      <span>Filter Text</span>
+      <input type="text" id="modalFilter" placeholder="">
+      <label><input type="checkbox" checked id="filterCode"> รหัส</label>
+      <label><input type="checkbox" checked id="filterName"> แผนก</label>
+      <button class="modal-search-btn" id="modalSearchBtn">ค้นหา</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-section-hdr">ประเภทลูกค้า</div>
+      <div class="modal-table-wrap">
+        <table class="modal-table" id="modalTable">
+          <thead>
+            <tr>
+              <th class="num-col"></th>
+              <th class="code-col">รหัส</th>
+              <th>ประเภทลูกค้า</th>
+            </tr>
+          </thead>
+          <tbody id="modalTbody"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <span class="record-info" id="modalRecordInfo">Record : 0 / 0</span>
+      <button class="exit-btn" id="modalExit">Exit</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// Generate contact rows
+const tbody = document.getElementById('contactsBody');
+for (let i = 1; i <= 6; i++) {
+  const tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td class="row-num">${i}</td>
+    <td><input type="text" id="ct_name_${i}" placeholder=""></td>
+    <td><input type="text" id="ct_pos_${i}" placeholder=""></td>
+    <td><input type="text" id="ct_phone_${i}" placeholder=""></td>
+    <td><input type="text" id="ct_email_${i}" placeholder=""></td>
+    <td><input type="text" id="ct_note_${i}" placeholder=""></td>
+    <td class="default-col"><select id="ct_def_${i}"><option></option><option>0</option><option>1</option></select></td>
+  `;
+  tbody.appendChild(tr);
+}
+
+// Customer Type Data
+const custTypes = [
+  { code: 'B',   name: 'NON-DAIRY BEVERAGES' },
+  { code: 'C',   name: 'CONSUMERS' },
+  { code: 'D',   name: 'DAIRY BEVERAGES & PRODUCTS' },
+  { code: 'FS',  name: 'FOOD SERVICES' },
+  { code: 'OT',  name: 'OTHERS' },
+  { code: 'PC',  name: 'PERSONAL CARE' },
+  { code: 'PET', name: 'PET FOODS & FEEDS' },
+  { code: 'PF',  name: 'PROCESSED FOODS' },
+  { code: 'R',   name: 'RETAILERS' },
+  { code: 'CC',  name: 'SNACKS & CONFECTIONERIES' },
+  { code: 'SP',  name: 'SPECIALTY' },
+  { code: 'TR',  name: 'TRADERS' },
+  { code: 'WS',  name: 'WHOLESALE' },
+];
+
+function renderModalTable(filter) {
+  const tbody = document.getElementById('modalTbody');
+  const useCode = document.getElementById('filterCode').checked;
+  const useName = document.getElementById('filterName').checked;
+  const q = (filter || '').toLowerCase();
+
+  const filtered = custTypes.filter(ct => {
+    if (!q) return true;
+    if (useCode && ct.code.toLowerCase().includes(q)) return true;
+    if (useName && ct.name.toLowerCase().includes(q)) return true;
+    return false;
+  });
+
+  tbody.innerHTML = '';
+  filtered.forEach((ct, i) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td class="num-col">${i+1}</td><td class="code-col">${ct.code}</td><td>${ct.name}</td>`;
+    tr.addEventListener('click', () => {
+      document.querySelectorAll('#modalTbody tr').forEach(r => r.classList.remove('selected'));
+      tr.classList.add('selected');
+    });
+    tr.addEventListener('dblclick', () => selectCustType(ct));
+    tbody.appendChild(tr);
+  });
+
+  document.getElementById('modalRecordInfo').textContent = `Record : ${filtered.length} / ${custTypes.length}`;
+}
+
+function selectCustType(ct) {
+  document.getElementById('f_custTypeCode').value = ct.code;
+  document.getElementById('f_custTypeDesc').value = ct.name;
+  document.getElementById('f_custTypeCode').classList.add('filled');
+  document.getElementById('f_custTypeDesc').classList.add('filled');
+  closeModal();
+}
+
+function openModal() {
+  document.getElementById('modalFilter').value = '';
+  renderModalTable('');
+  document.getElementById('custTypeModal').classList.add('active');
+  document.getElementById('modalFilter').focus();
+}
+
+function closeModal() {
+  document.getElementById('custTypeModal').classList.remove('active');
+}
+
+document.getElementById('modalClose').addEventListener('click', closeModal);
+document.getElementById('modalExit').addEventListener('click', closeModal);
+document.getElementById('custTypeModal').addEventListener('click', function(e) {
+  if (e.target === this) closeModal();
+});
+document.getElementById('modalSearchBtn').addEventListener('click', () => {
+  renderModalTable(document.getElementById('modalFilter').value);
+});
+document.getElementById('modalFilter').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') renderModalTable(this.value);
+});
+
+// Wire ... button next to ประเภทลูกค้า
+document.querySelectorAll('.btn.btn-dots').forEach(btn => {
+  const row = btn.closest('.form-row');
+  if (row && row.querySelector('#f_custTypeCode')) {
+    btn.addEventListener('click', openModal);
+  }
+});
+
+
+document.getElementById('fileInput').addEventListener('change', async function(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  const spinner = document.getElementById('spinner');
+  const statusMsg = document.getElementById('statusMsg');
+
+  spinner.classList.add('active');
+  statusMsg.textContent = '⏳ กำลังอ่านเอกสาร...';
+
+  try {
+    // Convert to base64
+    const base64Data = await new Promise((res, rej) => {
+      const r = new FileReader();
+      r.onload = () => res(r.result.split(',')[1]);
+      r.onerror = () => rej(new Error('อ่านไฟล์ไม่ได้'));
+      r.readAsDataURL(file);
+    });
+
+    const mediaType = file.type || 'application/pdf';
+
+    statusMsg.textContent = '🤖 Claude กำลังวิเคราะห์เอกสาร...';
+
+    const response = await fetch('/api/proxy', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        messages: [{
+          role: 'user',
+          content: [
+            {
+              type: 'document',
+              source: { type: 'base64', media_type: mediaType, data: base64Data }
+            },
+            {
+              type: 'text',
+              text: `อ่านเอกสารหนังสือรับรองบริษัทนี้และดึงข้อมูลออกมาเป็น JSON เท่านั้น ไม่ต้องมีคำอธิบาย ไม่ต้องมี markdown code block:
+{
+  "customerName": "ชื่อบริษัทเต็ม (รวมคำนำหน้าและจำกัด)",
+  "taxId": "เลขทะเบียนนิติบุคคล 13 หลัก",
+  "registrationDate": "วันที่จดทะเบียน ในรูปแบบ DD/MM/YYYY (พ.ศ.) เช่น 28/12/2561 — ใช้ปี พ.ศ. ตามที่ปรากฏในเอกสาร ไม่ต้องแปลง",
+  "registrationYearBE": "ปี พ.ศ. ที่จดทะเบียน เป็นตัวเลขเท่านั้น เช่น 2561",
+  "address": "ที่อยู่ เฉพาะเลขที่และชื่อถนน/ซอย ไม่รวมแขวง เขต จังหวัด",
+  "subDistrict": "แขวง หรือ ตำบล",
+  "district": "เขต หรือ อำเภอ",
+  "province": "จังหวัด",
+  "contactName1": "ชื่อกรรมการคนที่ 1 พร้อมคำนำหน้า",
+  "contactName2": "ชื่อกรรมการคนที่ 2 พร้อมคำนำหน้า (ถ้ามี)",
+  "personType": "juristic"
+}`
+            }
+          ]
+        }]
+      })
+    });
+
+    const data = await response.json();
+
+    if (data.error) throw new Error(data.error.message);
+
+    let text = data.content.map(i => i.text || '').join('');
+    text = text.replace(/```json|```/g, '').trim();
+
+    const parsed = JSON.parse(text);
+
+    // Fill fields with animation
+    function fillField(id, value) {
+      const el = document.getElementById(id);
+      if (el && value) {
+        if (el.tagName === 'SELECT') {
+          for (let opt of el.options) {
+            if (opt.value === value || opt.text === value) {
+              el.value = opt.value;
+              break;
+            }
+          }
+        } else {
+          el.value = value;
+        }
+        el.classList.add('filled', 'just-filled');
+        setTimeout(() => el.classList.remove('just-filled'), 1500);
+      }
+    }
+
+    fillField('f_customerName', parsed.customerName);
+    fillField('f_taxId', parsed.taxId);
+    fillField('f_address', parsed.address);
+    fillField('f_district', parsed.district);
+    fillField('f_province', parsed.province);
+
+    // Fill registration date and calculate age (พ.ศ.)
+    if (parsed.registrationDate) {
+      fillField('f_birthDate', parsed.registrationDate);
+    }
+    if (parsed.registrationYearBE) {
+      const regYearBE = parseInt(parsed.registrationYearBE);
+      const currentYearBE = new Date().getFullYear() + 543;
+      const age = currentYearBE - regYearBE;
+      fillField('f_age', age);
+    }
+
+    // Set juristic radio
+    if (parsed.personType === 'juristic') {
+      document.getElementById('r_juristic').checked = true;
+    }
+
+    // Fill contact names
+    if (parsed.contactName1) {
+      const ct1 = document.getElementById('ct_name_1');
+      if (ct1) {
+        ct1.value = parsed.contactName1;
+        ct1.classList.add('just-filled');
+        setTimeout(() => ct1.classList.remove('just-filled'), 1500);
+      }
+    }
+    if (parsed.contactName2) {
+      const ct2 = document.getElementById('ct_name_2');
+      if (ct2) {
+        ct2.value = parsed.contactName2;
+        ct2.classList.add('just-filled');
+        setTimeout(() => ct2.classList.remove('just-filled'), 1500);
+      }
+    }
+
+    statusMsg.textContent = '✅ ดึงข้อมูลสำเร็จ! กำลังค้นหารหัสไปรษณีย์...';
+    statusMsg.style.color = '#90ff90';
+
+    // Step 2: Look up postal code using AI
+    if (parsed.subDistrict || parsed.district || parsed.province) {
+      try {
+        const postalRes = await fetch('/api/proxy', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            model: 'claude-sonnet-4-20250514',
+            max_tokens: 100,
+            messages: [{
+              role: 'user',
+              content: `รหัสไปรษณีย์ของ แขวง${parsed.subDistrict || ''} เขต${parsed.district || ''} จังหวัด${parsed.province || ''} คือเท่าไหร่? ตอบเฉพาะตัวเลข 5 หลัก ไม่ต้องมีคำอธิบาย`
+            }]
+          })
+        });
+        const postalData = await postalRes.json();
+        const postalCode = (postalData.content?.[0]?.text || '').trim().replace(/[^0-9]/g, '').substring(0, 5);
+        if (postalCode.length === 5) {
+          fillField('f_countryCode', postalCode);
+        }
+      } catch(e) { /* ไม่เจอรหัสไปรษณีย์ก็ข้ามไป */ }
+    }
+
+    statusMsg.textContent = '✅ ดึงข้อมูลสำเร็จทั้งหมด! กรุณาตรวจสอบและแก้ไขข้อมูล';
+    statusMsg.style.color = '#90ff90';
+
+  } catch (err) {
+    statusMsg.textContent = '❌ เกิดข้อผิดพลาด: ' + err.message;
+    statusMsg.style.color = '#ffaaaa';
+    console.error(err);
+  } finally {
+    spinner.classList.remove('active');
+  }
+});
+
+// Export to PDF via blob download
+document.getElementById('exportPdfBtn').addEventListener('click', function() {
+  const btn = this;
+  btn.textContent = '⏳ กำลังเตรียม...';
+  btn.disabled = true;
+
+  try {
+    const content = document.querySelector('.main-container').outerHTML;
+    const styles = Array.from(document.styleSheets).map(ss => {
+      try { return Array.from(ss.cssRules).map(r => r.cssText).join('\n'); }
+      catch(e) { return ''; }
+    }).join('\n');
+
+    const html = `<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><title>Customer Form</title>
+<style>
+${styles}
+body { background: white; padding: 8px; margin: 0; }
+.upload-banner { display: none !important; }
+.modal-overlay { display: none !important; }
+* { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+@media print { body { padding: 0; margin: 0; } }
+</style></head><body>
+${content}
+<script>window.onload = function(){ setTimeout(function(){ window.print(); }, 600); };<\/script>
+</body></html>`;
+
+    const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+
+    // Try open in new tab first
+    const newWin = window.open(url, '_blank');
+    if (!newWin || newWin.closed || typeof newWin.closed === 'undefined') {
+      // Popup blocked — fallback to download
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'customer_form_print.html';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      alert('เปิดไฟล์ customer_form_print.html ที่ดาวน์โหลด แล้วกด Ctrl+P เพื่อ Print/Save PDF ครับ');
+    }
+
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+  } catch(err) {
+    alert('เกิดข้อผิดพลาด: ' + err.message);
+  }
+
+  setTimeout(() => { btn.textContent = '🖨️ Export PDF'; btn.disabled = false; }, 2000);
+});
+</script>
+</body>
+</html>
