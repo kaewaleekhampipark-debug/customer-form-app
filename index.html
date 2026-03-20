@@ -193,6 +193,7 @@
     * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
   }
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 </head>
 <body>
 <div class="main-container">
@@ -645,17 +646,22 @@ document.getElementById('fileInput').addEventListener('change', async function(e
   statusMsg.textContent = '⏳ กำลังอ่านเอกสาร...';
 
   try {
-    // Convert to base64
-    const base64Data = await new Promise((res, rej) => {
-      const r = new FileReader();
-      r.onload = () => res(r.result.split(',')[1]);
-      r.onerror = () => rej(new Error('อ่านไฟล์ไม่ได้'));
-      r.readAsDataURL(file);
-    });
+    // Extract text from PDF using PDF.js
+    const arrayBuffer = await file.arrayBuffer();
+    const pdfjsLib = window['pdfjs-dist/build/pdf'];
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
-    const mediaType = file.type || 'application/pdf';
+    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    let fullText = '';
+    for (let i = 1; i <= Math.min(pdf.numPages, 3); i++) {
+      const page = await pdf.getPage(i);
+      const content = await page.getTextContent();
+      fullText += content.items.map(item => item.str).join(' ') + '\n';
+    }
 
-    statusMsg.textContent = '🤖 Gemini กำลังวิเคราะห์เอกสาร...';
+    if (!fullText.trim()) throw new Error('ไม่สามารถอ่านข้อความจากไฟล์นี้ได้ กรุณาลองใช้ไฟล์ PDF ที่มีข้อความ');
+
+    statusMsg.textContent = '🤖 AI กำลังวิเคราะห์เอกสาร...';
 
     const response = await fetch('/api/proxy', {
       method: 'POST',
@@ -663,9 +669,7 @@ document.getElementById('fileInput').addEventListener('change', async function(e
       body: JSON.stringify({
         messages: [{
           role: 'user',
-          content: [
-            { type: 'image_url', image_url: { url: `data:${mediaType};base64,${base64Data}` } },
-            { type: 'text', text: `อ่านเอกสารหนังสือรับรองบริษัทนี้และดึงข้อมูลออกมาเป็น JSON เท่านั้น ไม่ต้องมีคำอธิบาย ไม่ต้องมี markdown code block:
+          content: `อ่านข้อความจากหนังสือรับรองบริษัทนี้และดึงข้อมูลออกมาเป็น JSON เท่านั้น ไม่ต้องมีคำอธิบาย ไม่ต้องมี markdown code block:
 {
   "customerName": "ชื่อบริษัทเต็ม (รวมคำนำหน้าและจำกัด)",
   "taxId": "เลขทะเบียนนิติบุคคล 13 หลัก",
@@ -678,8 +682,10 @@ document.getElementById('fileInput').addEventListener('change', async function(e
   "contactName1": "ชื่อกรรมการคนที่ 1 พร้อมคำนำหน้า",
   "contactName2": "ชื่อกรรมการคนที่ 2 พร้อมคำนำหน้า (ถ้ามี)",
   "personType": "juristic"
-}` }
-          ]
+}
+
+ข้อความจากเอกสาร:
+${fullText.substring(0, 4000)}`
         }]
       })
     });
