@@ -819,7 +819,27 @@ document.getElementById('exportPdfBtn').addEventListener('click', function() {
   btn.disabled = true;
 
   try {
-    const content = document.querySelector('.main-container').outerHTML;
+    // Clone the container
+    const container = document.querySelector('.main-container');
+    const clone = container.cloneNode(true);
+
+    // Copy all input/select/textarea values from original to clone
+    const origInputs = container.querySelectorAll('input, select, textarea');
+    const cloneInputs = clone.querySelectorAll('input, select, textarea');
+    origInputs.forEach((el, i) => {
+      if (el.type === 'checkbox' || el.type === 'radio') {
+        cloneInputs[i].checked = el.checked;
+      } else {
+        cloneInputs[i].value = el.value;
+      }
+    });
+
+    // Hide upload banner in clone
+    const banner = clone.querySelector('.upload-banner');
+    if (banner) banner.style.display = 'none';
+    const modal = clone.querySelector('.modal-overlay');
+    if (modal) modal.style.display = 'none';
+
     const styles = Array.from(document.styleSheets).map(ss => {
       try { return Array.from(ss.cssRules).map(r => r.cssText).join('\n'); }
       catch(e) { return ''; }
@@ -835,17 +855,23 @@ body { background: white; padding: 8px; margin: 0; }
 * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
 @media print { body { padding: 0; margin: 0; } }
 </style></head><body>
-${content}
-<script>window.onload = function(){ setTimeout(function(){ window.print(); }, 600); };<\/script>
+${clone.outerHTML}
+<script>
+window.onload = function(){
+  // Restore input values from data attributes
+  document.querySelectorAll('[data-val]').forEach(function(el){
+    el.value = el.getAttribute('data-val');
+  });
+  setTimeout(function(){ window.print(); }, 800);
+};
+<\/script>
 </body></html>`;
 
     const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
     const url = URL.createObjectURL(blob);
 
-    // Try open in new tab first
     const newWin = window.open(url, '_blank');
     if (!newWin || newWin.closed || typeof newWin.closed === 'undefined') {
-      // Popup blocked — fallback to download
       const a = document.createElement('a');
       a.href = url;
       a.download = 'customer_form_print.html';
