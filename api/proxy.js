@@ -1,7 +1,7 @@
 export const config = { api: { bodyParser: { sizeLimit: '10mb' } } };
 
 const MODELS = [
-  'mistralai/mistral-7b-instruct:free',
+  'openrouter/free',
   'meta-llama/llama-3.2-3b-instruct:free',
   'qwen/qwen-2-7b-instruct:free',
 ];
