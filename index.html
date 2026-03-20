@@ -655,24 +655,16 @@ document.getElementById('fileInput').addEventListener('change', async function(e
 
     const mediaType = file.type || 'application/pdf';
 
-    statusMsg.textContent = '🤖 Claude กำลังวิเคราะห์เอกสาร...';
+    statusMsg.textContent = '🤖 Gemini กำลังวิเคราะห์เอกสาร...';
 
     const response = await fetch('/api/proxy', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 1000,
-        messages: [{
-          role: 'user',
-          content: [
-            {
-              type: 'document',
-              source: { type: 'base64', media_type: mediaType, data: base64Data }
-            },
-            {
-              type: 'text',
-              text: `อ่านเอกสารหนังสือรับรองบริษัทนี้และดึงข้อมูลออกมาเป็น JSON เท่านั้น ไม่ต้องมีคำอธิบาย ไม่ต้องมี markdown code block:
+        contents: [{
+          parts: [
+            { inline_data: { mime_type: mediaType, data: base64Data } },
+            { text: `อ่านเอกสารหนังสือรับรองบริษัทนี้และดึงข้อมูลออกมาเป็น JSON เท่านั้น ไม่ต้องมีคำอธิบาย ไม่ต้องมี markdown code block:
 {
   "customerName": "ชื่อบริษัทเต็ม (รวมคำนำหน้าและจำกัด)",
   "taxId": "เลขทะเบียนนิติบุคคล 13 หลัก",
@@ -685,8 +677,7 @@ document.getElementById('fileInput').addEventListener('change', async function(e
   "contactName1": "ชื่อกรรมการคนที่ 1 พร้อมคำนำหน้า",
   "contactName2": "ชื่อกรรมการคนที่ 2 พร้อมคำนำหน้า (ถ้ามี)",
   "personType": "juristic"
-}`
-            }
+}` }
           ]
         }]
       })
@@ -694,9 +685,9 @@ document.getElementById('fileInput').addEventListener('change', async function(e
 
     const data = await response.json();
 
-    if (data.error) throw new Error(data.error.message);
+    if (data.error) throw new Error(data.error.message || JSON.stringify(data.error));
 
-    let text = data.content.map(i => i.text || '').join('');
+    let text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
     text = text.replace(/```json|```/g, '').trim();
 
     const parsed = JSON.parse(text);
@@ -770,16 +761,13 @@ document.getElementById('fileInput').addEventListener('change', async function(e
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            model: 'claude-sonnet-4-20250514',
-            max_tokens: 100,
-            messages: [{
-              role: 'user',
-              content: `รหัสไปรษณีย์ของ แขวง${parsed.subDistrict || ''} เขต${parsed.district || ''} จังหวัด${parsed.province || ''} คือเท่าไหร่? ตอบเฉพาะตัวเลข 5 หลัก ไม่ต้องมีคำอธิบาย`
+            contents: [{
+              parts: [{ text: `รหัสไปรษณีย์ของ แขวง${parsed.subDistrict || ''} เขต${parsed.district || ''} จังหวัด${parsed.province || ''} คือเท่าไหร่? ตอบเฉพาะตัวเลข 5 หลัก ไม่ต้องมีคำอธิบาย` }]
             }]
           })
         });
         const postalData = await postalRes.json();
-        const postalCode = (postalData.content?.[0]?.text || '').trim().replace(/[^0-9]/g, '').substring(0, 5);
+        const postalCode = (postalData.candidates?.[0]?.content?.parts?.[0]?.text || '').trim().replace(/[^0-9]/g, '').substring(0, 5);
         if (postalCode.length === 5) {
           fillField('f_countryCode', postalCode);
         }
