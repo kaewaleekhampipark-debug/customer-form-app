@@ -18,7 +18,7 @@ export default async function handler(req, res) {
         'X-Title': 'Customer Form',
       },
       body: JSON.stringify({
-        model: 'mistralai/mistral-7b-instruct:free',
+        model: 'openrouter/free',
         messages: req.body.messages,
       }),
     });
