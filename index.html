@@ -827,6 +827,7 @@ document.getElementById('exportPdfBtn').addEventListener('click', function() {
     const origInputs = container.querySelectorAll('input, select, textarea');
     const cloneInputs = clone.querySelectorAll('input, select, textarea');
     origInputs.forEach((el, i) => {
+      if (el.type === 'file') return; // ข้าม file input
       if (el.type === 'checkbox' || el.type === 'radio') {
         cloneInputs[i].checked = el.checked;
       } else {
