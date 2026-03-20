@@ -661,10 +661,11 @@ document.getElementById('fileInput').addEventListener('change', async function(e
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        contents: [{
-          parts: [
-            { inline_data: { mime_type: mediaType, data: base64Data } },
-            { text: `อ่านเอกสารหนังสือรับรองบริษัทนี้และดึงข้อมูลออกมาเป็น JSON เท่านั้น ไม่ต้องมีคำอธิบาย ไม่ต้องมี markdown code block:
+        messages: [{
+          role: 'user',
+          content: [
+            { type: 'image_url', image_url: { url: `data:${mediaType};base64,${base64Data}` } },
+            { type: 'text', text: `อ่านเอกสารหนังสือรับรองบริษัทนี้และดึงข้อมูลออกมาเป็น JSON เท่านั้น ไม่ต้องมีคำอธิบาย ไม่ต้องมี markdown code block:
 {
   "customerName": "ชื่อบริษัทเต็ม (รวมคำนำหน้าและจำกัด)",
   "taxId": "เลขทะเบียนนิติบุคคล 13 หลัก",
@@ -687,7 +688,7 @@ document.getElementById('fileInput').addEventListener('change', async function(e
 
     if (data.error) throw new Error(data.error.message || JSON.stringify(data.error));
 
-    let text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    let text = data.choices?.[0]?.message?.content || '';
     text = text.replace(/```json|```/g, '').trim();
 
     const parsed = JSON.parse(text);
@@ -761,13 +762,14 @@ document.getElementById('fileInput').addEventListener('change', async function(e
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            contents: [{
-              parts: [{ text: `รหัสไปรษณีย์ของ แขวง${parsed.subDistrict || ''} เขต${parsed.district || ''} จังหวัด${parsed.province || ''} คือเท่าไหร่? ตอบเฉพาะตัวเลข 5 หลัก ไม่ต้องมีคำอธิบาย` }]
+            messages: [{
+              role: 'user',
+              content: `รหัสไปรษณีย์ของ แขวง${parsed.subDistrict || ''} เขต${parsed.district || ''} จังหวัด${parsed.province || ''} คือเท่าไหร่? ตอบเฉพาะตัวเลข 5 หลัก ไม่ต้องมีคำอธิบาย`
             }]
           })
         });
         const postalData = await postalRes.json();
-        const postalCode = (postalData.candidates?.[0]?.content?.parts?.[0]?.text || '').trim().replace(/[^0-9]/g, '').substring(0, 5);
+        const postalCode = (postalData.choices?.[0]?.message?.content || '').trim().replace(/[^0-9]/g, '').substring(0, 5);
         if (postalCode.length === 5) {
           fillField('f_countryCode', postalCode);
         }
