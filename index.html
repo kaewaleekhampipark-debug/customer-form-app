@@ -827,11 +827,17 @@ document.getElementById('exportPdfBtn').addEventListener('click', function() {
     const origInputs = container.querySelectorAll('input, select, textarea');
     const cloneInputs = clone.querySelectorAll('input, select, textarea');
     origInputs.forEach((el, i) => {
-      if (el.type === 'file') return; // ข้าม file input
+      if (el.type === 'file') return;
       if (el.type === 'checkbox' || el.type === 'radio') {
-        cloneInputs[i].checked = el.checked;
+        if (el.checked) cloneInputs[i].setAttribute('checked', 'checked');
+        else cloneInputs[i].removeAttribute('checked');
+      } else if (el.tagName === 'SELECT') {
+        Array.from(cloneInputs[i].options).forEach((opt, j) => {
+          if (el.options[j] && el.options[j].selected) opt.setAttribute('selected', 'selected');
+          else opt.removeAttribute('selected');
+        });
       } else {
-        cloneInputs[i].value = el.value;
+        cloneInputs[i].setAttribute('value', el.value);
       }
     });
 
