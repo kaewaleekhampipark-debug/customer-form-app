@@ -634,36 +634,13 @@ document.querySelectorAll('.btn.btn-dots').forEach(btn => {
   }
 });
 
-// Postal code database (โหลดจาก CDN ครั้งเดียว)
-let postalDB = null;
-async function loadPostalDB() {
-  if (postalDB) return postalDB;
-  try {
-    const res = await fetch('https://raw.githubusercontent.com/earthchie/jquery.Thailand.js/master/jquery.Thailand.js/database/raw_database/raw_database.json');
-    const data = await res.json();
-    postalDB = {};
-    data.forEach(row => {
-      if (row.sub_district && row.zip) postalDB[row.sub_district] = String(row.zip).padStart(5,'0');
-      if (row.district && row.zip && !postalDB[row.district]) postalDB['__d__'+row.district] = String(row.zip).padStart(5,'0');
-    });
-  } catch(e) { postalDB = {}; }
-  return postalDB;
-}
-async function lookupPostalCode(subDistrict, district) {
-  const db = await loadPostalDB();
-  const skey = (subDistrict||'').replace(/^(แขวง|ตำบล)/,'').trim();
-  const dkey = (district||'').replace(/^(เขต|อำเภอ)/,'').trim();
-  return db[skey] || db['__d__'+dkey] || '';
-}
-
 // Fix Thai text encoding artifacts from PDF.js
 function fixThaiText(text) {
   if (!text) return text;
-  // Replace common garbled sequences and box characters
   return text
     .replace(/\uFFFD/g, '')
-    .replace(/[\u25A0\u25A1\u25AA\u25AB\u2610\u2611\u2612]/g, '') // box chars
-    .replace(/[^\u0000-\u007F\u0E00-\u0E7F\u00A0-\u00FF]/g, '') // keep Thai + ASCII + Latin
+    .replace(/[\u25A0\u25A1\u25AA\u25AB\u2610\u2611\u2612]/g, '')
+    .replace(/[^\u0000-\u007F\u0E00-\u0E7F\u00A0-\u00FF]/g, '')
     .trim();
 }
 
@@ -676,9 +653,6 @@ document.getElementById('fileInput').addEventListener('change', async function(e
 
   spinner.classList.add('active');
   statusMsg.textContent = '⏳ กำลังอ่านเอกสาร...';
-
-  // Preload postal DB in background
-  loadPostalDB();
 
   try {
     // Extract text from PDF using PDF.js
@@ -708,12 +682,13 @@ document.getElementById('fileInput').addEventListener('change', async function(e
 {
   "customerName": "ชื่อบริษัทเต็ม (รวมคำนำหน้าและจำกัด)",
   "taxId": "เลขทะเบียนนิติบุคคล 13 หลัก",
-  "registrationDate": "วันที่จดทะเบียน ในรูปแบบ DD/MM/YYYY (พ.ศ.) เช่น 28/12/2561 — ใช้ปี พ.ศ. ตามที่ปรากฏในเอกสาร ไม่ต้องแปลง",
-  "registrationYearBE": "ปี พ.ศ. ที่จดทะเบียน เป็นตัวเลขเท่านั้น เช่น 2561",
+  "registrationDate": "วันที่จดทะเบียน ในรูปแบบ DD/MM/YYYY (พ.ศ.) เช่น 28/12/2561",
+  "registrationYearBE": "ปี พ.ศ. ที่จดทะเบียน ตัวเลขเท่านั้น เช่น 2561",
   "address": "ที่อยู่ เฉพาะเลขที่และชื่อถนน/ซอย ไม่รวมแขวง เขต จังหวัด",
-  "subDistrict": "แขวง หรือ ตำบล",
-  "district": "เขต หรือ อำเภอ",
-  "province": "จังหวัด",
+  "subDistrict": "แขวง หรือ ตำบล (ไม่ต้องมีคำว่าแขวง/ตำบลนำหน้า)",
+  "district": "เขต หรือ อำเภอ (ไม่ต้องมีคำว่าเขต/อำเภอนำหน้า)",
+  "province": "จังหวัด (ไม่ต้องมีคำว่าจังหวัดนำหน้า)",
+  "postalCode": "รหัสไปรษณีย์ 5 หลัก ของที่อยู่นี้ — ใช้ความรู้ของคุณระบุให้ถูกต้อง",
   "contactName1": "ชื่อกรรมการคนที่ 1 พร้อมคำนำหน้า",
   "contactName2": "ชื่อกรรมการคนที่ 2 พร้อมคำนำหน้า (ถ้ามี)",
   "personType": "juristic"
@@ -793,15 +768,13 @@ ${fullText.substring(0, 4000)}`
       }
     }
 
-    statusMsg.textContent = '✅ ดึงข้อมูลสำเร็จ! กำลังค้นหารหัสไปรษณีย์...';
-    statusMsg.style.color = '#90ff90';
-
-    // Step 2: Lookup postal code from full Thailand DB
-    const postalCode = await lookupPostalCode(parsed.subDistrict, parsed.district);
-    if (postalCode) fillField('f_countryCode', postalCode);
-
     statusMsg.textContent = '✅ ดึงข้อมูลสำเร็จทั้งหมด! กรุณาตรวจสอบและแก้ไขข้อมูล';
     statusMsg.style.color = '#90ff90';
+
+    // Fill postal code from AI result
+    if (parsed.postalCode && /^\d{5}$/.test(parsed.postalCode.trim())) {
+      fillField('f_countryCode', parsed.postalCode.trim());
+    }
 
   } catch (err) {
     statusMsg.textContent = '❌ เกิดข้อผิดพลาด: ' + err.message;
